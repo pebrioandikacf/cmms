@@ -122,20 +122,41 @@ fun UnitDashboardContent(modifier: Modifier = Modifier) {
     Column(
         modifier = modifier
             .fillMaxSize()
-            .verticalScroll(rememberScrollState())
+            .verticalScroll(rememberScrollState()) // scroll untuk seluruh screen
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(24.dp)
     ) {
+        // Header & status cards (tidak berubah)
         Text("Dashboard", style = MaterialTheme.typography.titleLarge)
-
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            UnitStatusCard("11", "Stasiun", Color(0xFFE53935), Modifier.weight(1f).height(100.dp))
-            UnitStatusCard("233", "Peralatan", Color(0xFF00ACC1), Modifier.weight(1f).height(100.dp))
+            StatusCard(
+                count = "11",
+                label = "Stasiun",
+                icon = Icons.Filled.CalendarToday,
+                footerColor = Color(0xFFE53935),
+                changeText = "%change",
+                modifier = Modifier
+                    .weight(1f)
+                    .height(110.dp)
+            )
+
+            StatusCard(
+                count = "233",
+                label = "Peralatan",
+                icon = Icons.Filled.Download,
+                footerColor = Color(0xFF00ACC1),
+                changeText = "%change",
+                modifier = Modifier
+                    .weight(1f)
+                    .height(110.dp)
+            )
         }
 
+
+        // Semua section akan selalu dirender (scrollable)
         UnitSection("List Pemeliharaan Asset Belum Dikerjakan", dummyMaintenanceData.filter { !it.sudah })
         UnitSection("List Pemeliharaan Asset Sudah Dikerjakan", dummyMaintenanceData.filter { it.sudah })
         UnitSection("List Perbaikan Asset Belum Dikerjakan", dummyRepairData.filter { !it.sudah })
@@ -144,19 +165,80 @@ fun UnitDashboardContent(modifier: Modifier = Modifier) {
 }
 
 @Composable
-fun UnitStatusCard(count: String, label: String, bgColor: Color, modifier: Modifier = Modifier) {
+fun StatusCard(
+    count: String,
+    label: String,
+    icon: ImageVector,
+    footerColor: Color,
+    changeText: String,
+    modifier: Modifier = Modifier
+) {
     Card(
         modifier = modifier,
-        colors = CardDefaults.cardColors(containerColor = bgColor)
+        shape = RoundedCornerShape(6.dp), // Sudut sedikit membulat
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(4.dp)
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(12.dp),
-            verticalArrangement = Arrangement.SpaceBetween
-        ) {
-            Text(count, color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
-            Text(label, color = Color.White)
+        Column(modifier = Modifier.fillMaxSize()) {
+            // Bagian atas isi utama
+            Row(
+                modifier = Modifier
+                    .weight(3f)
+                    .fillMaxWidth()
+                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column {
+                    Text(
+                        text = count,
+                        color = footerColor,
+                        fontSize = 24.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = label,
+                        color = Color.Gray,
+                        fontSize = 14.sp
+                    )
+                }
+
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = Color.Gray,
+                    modifier = Modifier.size(32.dp)
+                )
+            }
+
+            // Bagian bawah (footer berwarna)
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+                    .background(footerColor)
+                    .padding(horizontal = 12.dp, vertical = 4.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxSize(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = changeText, // Contoh: "+12%"
+                        color = Color.White,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+
+                    Icon(
+                        imageVector = Icons.Filled.TrendingUp,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+            }
         }
     }
 }

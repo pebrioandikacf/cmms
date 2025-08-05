@@ -26,7 +26,7 @@ class MainActivity : ComponentActivity() {
                             if (role == "mekanik") {
                                 navController.navigate("mechanic_dashboard") {
                                     popUpTo("login") { inclusive = true }
-                                }
+                                    }
                             } else {
                                 navController.navigate("unit_dashboard") {
                                     popUpTo("login") { inclusive = true }
