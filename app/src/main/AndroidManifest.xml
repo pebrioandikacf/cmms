@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <application
         android:allowBackup="true"
@@ -12,15 +11,7 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Cmms">
 
-        <!-- LoginActivity tanpa intent-filter -->
-        <activity
-            android:name=".LoginActivity"
-            android:exported="false"
-            tools:ignore="Instantiatable" />
-
-        <!-- Hapus entri DashboardActivity dan DashboardScreen -->
-
-        <!-- MainActivity sebagai entry point -->
+        <!-- MainActivity sebagai satu-satunya entry point -->
         <activity
             android:name=".MainActivity"
             android:exported="true">
@@ -30,6 +21,8 @@
             </intent-filter>
         </activity>
 
+        <!-- Hapus semua activity deklarasi lain karena kita
+             hanya menggunakan MainActivity + Compose NavHost -->
     </application>
 
 </manifest>

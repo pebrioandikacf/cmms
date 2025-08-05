@@ -1,4 +1,4 @@
-// File: AppDrawer.kt
+// File: MechanicDashboard.kt
 package com.ptpn.cmms
 
 import androidx.compose.foundation.background
@@ -8,16 +8,12 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -30,64 +26,21 @@ import androidx.compose.ui.unit.sp
 import com.ptpn.cmms.ui.theme.CmmsTheme
 import kotlinx.coroutines.launch
 
-/** Dummy Data for Dashboard cards */
-private val dummyStats = listOf(
-    Pair("Stasiun", 11),
-    Pair("Peralatan", 233)
-)
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AppDrawer(onLogout: () -> Unit = {}) {
+fun MechanicDashboard(onLogout: () -> Unit = {}) {
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
-    var showDataMasterSub by remember { mutableStateOf(false) }
 
     ModalNavigationDrawer(
         drawerContent = {
             ModalDrawerSheet {
-                DrawerHeader()
+                MechanicDrawerHeader()
                 Spacer(Modifier.height(8.dp))
 
-                // Dashboard biasa
-                DrawerItem("Dashboard", Icons.Filled.Home) { /* TODO */ }
-
-                // Data Master dengan icon panah
-                NavigationDrawerItem(
-                    label = {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text("Data Master")
-                            Spacer(Modifier.weight(1f))
-                            Icon(
-                                imageVector = if (showDataMasterSub)
-                                    Icons.Filled.KeyboardArrowUp
-                                else
-                                    Icons.Filled.KeyboardArrowDown,
-                                contentDescription = null
-                            )
-                        }
-                    },
-                    icon = { Icon(Icons.Filled.Dashboard, contentDescription = null) },
-                    selected = showDataMasterSub,
-                    onClick = { showDataMasterSub = !showDataMasterSub },
-                    modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
-                )
-
-                // Submenu: Data Mekanik (indentasi)
-                if (showDataMasterSub) {
-                    DrawerItem(
-                        title = "Data Mekanik",
-                        icon = Icons.Filled.Person,
-                        modifier = Modifier.padding(start = 32.dp)
-                    ) { /* TODO */ }
-                }
-
-                // Item lain
-                DrawerItem("Assets", Icons.AutoMirrored.Filled.List) { /* TODO */ }
-                DrawerItem("Jam Jalan Peralatan", Icons.Filled.Schedule) { /* TODO */ }
-                DrawerItem("Logout", Icons.AutoMirrored.Filled.ExitToApp) { onLogout() }
+                MechanicDrawerItem("Dashboard", Icons.Filled.Home) { /* TODO */ }
+                MechanicDrawerItem("Assets", Icons.AutoMirrored.Filled.List) { /* TODO */ }
+                MechanicDrawerItem("Logout", Icons.AutoMirrored.Filled.ExitToApp) { onLogout() }
             }
         },
         drawerState = drawerState
@@ -95,7 +48,7 @@ fun AppDrawer(onLogout: () -> Unit = {}) {
         Scaffold(
             topBar = {
                 TopAppBar(
-                    title = { Text("Dashboard CMMS") },
+                    title = { Text("Dashboard Mekanik") },
                     navigationIcon = {
                         IconButton(onClick = { scope.launch { drawerState.open() } }) {
                             Icon(Icons.Filled.Menu, contentDescription = "Menu")
@@ -104,13 +57,13 @@ fun AppDrawer(onLogout: () -> Unit = {}) {
                 )
             }
         ) {
-            DashboardContent(modifier = Modifier.padding(it))
+            MechanicDashboardContent(modifier = Modifier.padding(it))
         }
     }
 }
 
 @Composable
-fun DrawerHeader() {
+fun MechanicDrawerHeader() {
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -122,7 +75,7 @@ fun DrawerHeader() {
 }
 
 @Composable
-fun DrawerItem(
+fun MechanicDrawerItem(
     title: String,
     icon: ImageVector,
     modifier: Modifier = Modifier,
@@ -138,34 +91,31 @@ fun DrawerItem(
 }
 
 @Composable
-fun DashboardContent(modifier: Modifier = Modifier) {
+fun MechanicDashboardContent(modifier: Modifier = Modifier) {
     Column(
         modifier = modifier
             .fillMaxSize()
-            .verticalScroll(rememberScrollState()) // scroll untuk seluruh screen
+            .verticalScroll(rememberScrollState())
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(24.dp)
     ) {
-        // Header & status cards (tidak berubah)
         Text("Dashboard", style = MaterialTheme.typography.titleLarge)
+
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            StatusCard("11", "Stasiun", Color(0xFFE53935), Modifier.weight(1f).height(100.dp))
-            StatusCard("233", "Peralatan", Color(0xFF00ACC1), Modifier.weight(1f).height(100.dp))
+            MechanicStatusCard("11", "Stasiun", Color(0xFFE53935), Modifier.weight(1f).height(100.dp))
+            MechanicStatusCard("233", "Peralatan", Color(0xFF00ACC1), Modifier.weight(1f).height(100.dp))
         }
 
-        // Semua section akan selalu dirender (scrollable)
-        Section("List Pemeliharaan Asset Belum Dikerjakan", dummyMaintenanceData.filter { !it.sudah })
-        Section("List Pemeliharaan Asset Sudah Dikerjakan", dummyMaintenanceData.filter { it.sudah })
-        Section("List Perbaikan Asset Belum Dikerjakan", dummyRepairData.filter { !it.sudah })
-        Section("List Perbaikan Asset Sudah Dikerjakan", dummyRepairData.filter { it.sudah })
+        MechanicSection("List Pemeliharaan Asset Belum Dikerjakan", dummyMaintenanceData.filter { !it.sudah })
+        MechanicSection("List Perbaikan Asset Belum Dikerjakan", dummyRepairData.filter { !it.sudah })
     }
 }
 
 @Composable
-fun StatusCard(count: String, label: String, bgColor: Color, modifier: Modifier = Modifier) {
+fun MechanicStatusCard(count: String, label: String, bgColor: Color, modifier: Modifier = Modifier) {
     Card(
         modifier = modifier,
         colors = CardDefaults.cardColors(containerColor = bgColor)
@@ -183,14 +133,14 @@ fun StatusCard(count: String, label: String, bgColor: Color, modifier: Modifier 
 }
 
 @Composable
-fun Section(title: String, data: List<AssetData>) {
+fun MechanicSection(title: String, data: List<MechanicAssetData>) {
     Text(title, fontSize = 18.sp, fontWeight = FontWeight.Bold)
     Spacer(Modifier.height(8.dp))
-    MaintenanceTable(data)
+    MechanicTable(data)
 }
 
 @Composable
-fun MaintenanceTable(data: List<AssetData>) {
+fun MechanicTable(data: List<MechanicAssetData>) {
     val scrollState = rememberScrollState()
 
     Column(
@@ -198,7 +148,6 @@ fun MaintenanceTable(data: List<AssetData>) {
             .fillMaxWidth()
             .wrapContentHeight()
     ) {
-        // Header row
         Box(modifier = Modifier.horizontalScroll(scrollState)) {
             Row(
                 modifier = Modifier
@@ -207,15 +156,14 @@ fun MaintenanceTable(data: List<AssetData>) {
                     .padding(vertical = 8.dp),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                TableCell("No", 40.dp, isHeader = true)
-                TableCell("Tanggal", 100.dp, isHeader = true)
-                TableCell("Deskripsi", 200.dp, isHeader = true)
-                TableCell("Status", 120.dp, isHeader = true)
-                TableCell("Action", 120.dp, isHeader = true)
+                MechanicTableCell("No", 40.dp, isHeader = true)
+                MechanicTableCell("Tanggal", 100.dp, isHeader = true)
+                MechanicTableCell("Deskripsi", 200.dp, isHeader = true)
+                MechanicTableCell("Status", 120.dp, isHeader = true)
+                MechanicTableCell("Action", 120.dp, isHeader = true)
             }
         }
 
-        // Data rows
         data.forEach { item ->
             Box(modifier = Modifier.horizontalScroll(scrollState)) {
                 Row(
@@ -224,10 +172,10 @@ fun MaintenanceTable(data: List<AssetData>) {
                         .padding(vertical = 6.dp),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    TableCell(item.no.toString(), 40.dp)
-                    TableCell(item.tanggal, 100.dp)
-                    TableCell(item.deskripsi, 200.dp)
-                    TableCell(
+                    MechanicTableCell(item.no.toString(), 40.dp)
+                    MechanicTableCell(item.tanggal, 100.dp)
+                    MechanicTableCell(item.deskripsi, 200.dp)
+                    MechanicTableCell(
                         text = if (item.sudah) "Sudah Dikerjakan" else "Belum Dikerjakan",
                         width = 120.dp,
                         color = if (item.sudah) Color(0xFF2E7D32) else Color(0xFFD32F2F)
@@ -269,7 +217,7 @@ fun MaintenanceTable(data: List<AssetData>) {
 }
 
 @Composable
-fun TableCell(text: String, width: Dp, color: Color = Color.Unspecified, isHeader: Boolean = false) {
+fun MechanicTableCell(text: String, width: Dp, color: Color = Color.Unspecified, isHeader: Boolean = false) {
     Text(
         text = text,
         modifier = Modifier.width(width),
@@ -278,25 +226,25 @@ fun TableCell(text: String, width: Dp, color: Color = Color.Unspecified, isHeade
     )
 }
 
-data class AssetData(val no: Int, val tanggal: String, val deskripsi: String, val sudah: Boolean)
+// Dummy data shared
+data class MechanicAssetData(val no: Int, val tanggal: String, val deskripsi: String, val sudah: Boolean)
 
-// Dummy Data
 private val dummyMaintenanceData = listOf(
-    AssetData(1, "01 Juni 2025", "Preventive WHEEL LOADER CAT 914 G", false),
-    AssetData(2, "02 Juni 2025", "Preventive Screw Press No:2", false),
-    AssetData(3, "03 Juni 2025", "Preventive Screw Press No:3", true),
-    AssetData(4, "04 Juni 2025", "Preventive WHEEL LOADER CAT 914 G", true)
+    MechanicAssetData(1, "01 Juni 2025", "Preventive WHEEL LOADER CAT 914 G", false),
+    MechanicAssetData(2, "02 Juni 2025", "Preventive Screw Press No:2", false),
+    MechanicAssetData(3, "03 Juni 2025", "Preventive Screw Press No:3", true),
+    MechanicAssetData(4, "04 Juni 2025", "Preventive WHEEL LOADER CAT 914 G", true)
 )
 
 private val dummyRepairData = listOf(
-    AssetData(1, "05 Juni 2025", "Perbaikan Gearbox Press A", false),
-    AssetData(2, "06 Juni 2025", "Perbaikan Conveyor Loader", true)
+    MechanicAssetData(1, "05 Juni 2025", "Perbaikan Gearbox Press A", false),
+    MechanicAssetData(2, "06 Juni 2025", "Perbaikan Conveyor Loader", true)
 )
 
 @Preview(showBackground = true)
 @Composable
-fun AppDrawerPreview() {
+fun MechanicDashboardPreview() {
     CmmsTheme {
-        AppDrawer()
+        MechanicDashboard()
     }
 }

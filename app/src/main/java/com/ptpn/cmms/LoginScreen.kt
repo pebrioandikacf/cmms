@@ -19,8 +19,13 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.ptpn.cmms.ui.theme.CmmsTheme
 
+/**
+ * @param onLoginSuccess Dipanggil dengan role yang di‐login, misal "unit" atau "mekanik"
+ */
 @Composable
-fun LoginScreen(onLoginSuccess: () -> Unit = {}) {
+fun LoginScreen(
+    onLoginSuccess: (role: String) -> Unit = {}
+) {
     val context = LocalContext.current
     var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
@@ -32,13 +37,16 @@ fun LoginScreen(onLoginSuccess: () -> Unit = {}) {
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Image(
-            painter = painterResource(id = R.drawable.logocmms),
-            contentDescription = "Logo CMMS",
-            modifier = Modifier
-                .height(120.dp)
-                .padding(bottom = 24.dp)
-        )
+        // Tampilkan logo jika ada
+        runCatching {
+            Image(
+                painter = painterResource(id = R.drawable.logocmms),
+                contentDescription = "Logo CMMS",
+                modifier = Modifier
+                    .height(120.dp)
+                    .padding(bottom = 24.dp)
+            )
+        }
 
         Text(
             text = "Sign In",
@@ -70,8 +78,10 @@ fun LoginScreen(onLoginSuccess: () -> Unit = {}) {
         Button(
             onClick = {
                 if (username.isNotBlank() && password.isNotBlank()) {
-                    Toast.makeText(context, "Login sukses (dummy)", Toast.LENGTH_SHORT).show()
-                    onLoginSuccess()
+                    // Dummy role determination
+                    val role = if (username.lowercase().startsWith("mek")) "mekanik" else "unit"
+                    Toast.makeText(context, "Login sukses sebagai $role", Toast.LENGTH_SHORT).show()
+                    onLoginSuccess(role)
                 } else {
                     Toast.makeText(context, "Username & Password wajib diisi", Toast.LENGTH_SHORT).show()
                 }
@@ -88,6 +98,6 @@ fun LoginScreen(onLoginSuccess: () -> Unit = {}) {
 @Composable
 fun PreviewLoginScreen() {
     CmmsTheme {
-        LoginScreen()
+        LoginScreen() // sekarang aman tanpa perlu argumen
     }
 }
