@@ -10,15 +10,19 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.Cmms">
+
+        <!-- MainActivity sebagai satu-satunya entry point -->
         <activity
-            android:name=".MainActivity"
+            android:name=".DashboardActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- Hapus semua activity deklarasi lain karena kita
+             hanya menggunakan MainActivity + Compose NavHost -->
     </application>
 
 </manifest>

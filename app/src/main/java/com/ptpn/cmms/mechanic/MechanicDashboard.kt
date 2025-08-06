@@ -10,12 +10,13 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.FileDownload
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.automirrored.filled.List
-import androidx.compose.material.icons.filled.CalendarToday
-import androidx.compose.material.icons.filled.Download
 import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -31,7 +32,10 @@ import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MechanicDashboard(onLogout: () -> Unit = {}) {
+fun MechanicDashboard(
+    onLogout: () -> Unit = {},
+    onViewDetail: (itemId: Int) -> Unit
+) {
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
 
@@ -59,8 +63,11 @@ fun MechanicDashboard(onLogout: () -> Unit = {}) {
                     }
                 )
             }
-        ) {
-            MechanicDashboardContent(modifier = Modifier.padding(it))
+        ) { padding ->
+            MechanicDashboardContent(
+                modifier = Modifier.padding(padding),
+                onViewDetail = onViewDetail
+            )
         }
     }
 }
@@ -94,7 +101,10 @@ fun MechanicDrawerItem(
 }
 
 @Composable
-fun MechanicDashboardContent(modifier: Modifier = Modifier) {
+fun MechanicDashboardContent(
+    modifier: Modifier = Modifier,
+    onViewDetail: (itemId: Int) -> Unit
+) {
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -111,7 +121,7 @@ fun MechanicDashboardContent(modifier: Modifier = Modifier) {
             StatusCard(
                 count = "11",
                 label = "Stasiun",
-                icon = Icons.Filled.CalendarToday,
+                icon = Icons.Filled.DateRange,
                 footerColor = Color(0xFFE53935),
                 changeText = "%change",
                 modifier = Modifier
@@ -122,7 +132,7 @@ fun MechanicDashboardContent(modifier: Modifier = Modifier) {
             StatusCard(
                 count = "233",
                 label = "Peralatan",
-                icon = Icons.Filled.Download,
+                icon = Icons.Filled.FileDownload,
                 footerColor = Color(0xFF00ACC1),
                 changeText = "%change",
                 modifier = Modifier
@@ -131,38 +141,27 @@ fun MechanicDashboardContent(modifier: Modifier = Modifier) {
             )
         }
 
-        MechanicSection("List Pemeliharaan Asset Belum Dikerjakan", dummyMaintenanceData.filter { !it.sudah })
-        MechanicSection("List Perbaikan Asset Belum Dikerjakan", dummyRepairData.filter { !it.sudah })
+        MechanicSection("List Pemeliharaan Asset Belum Dikerjakan", dummyMaintenanceData.filter { !it.sudah }, onViewDetail)
+        MechanicSection("List Perbaikan Asset Belum Dikerjakan", dummyRepairData.filter { !it.sudah }, onViewDetail)
     }
 }
 
 @Composable
-fun MechanicStatusCard(count: String, label: String, bgColor: Color, modifier: Modifier = Modifier) {
-    Card(
-        modifier = modifier,
-        colors = CardDefaults.cardColors(containerColor = bgColor)
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(12.dp),
-            verticalArrangement = Arrangement.SpaceBetween
-        ) {
-            Text(count, color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
-            Text(label, color = Color.White)
-        }
-    }
-}
-
-@Composable
-fun MechanicSection(title: String, data: List<MechanicAssetData>) {
+fun MechanicSection(
+    title: String,
+    data: List<MechanicAssetData>,
+    onViewDetail: (itemId: Int) -> Unit
+) {
     Text(title, fontSize = 18.sp, fontWeight = FontWeight.Bold)
     Spacer(Modifier.height(8.dp))
-    MechanicTable(data)
+    MechanicTable(data, onViewDetail)
 }
 
 @Composable
-fun MechanicTable(data: List<MechanicAssetData>) {
+fun MechanicTable(
+    data: List<MechanicAssetData>,
+    onViewDetail: (itemId: Int) -> Unit
+) {
     val scrollState = rememberScrollState()
 
     Column(
@@ -192,7 +191,8 @@ fun MechanicTable(data: List<MechanicAssetData>) {
                     modifier = Modifier
                         .width(580.dp)
                         .padding(vertical = 6.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
                     MechanicTableCell(item.no.toString(), 40.dp)
                     MechanicTableCell(item.tanggal, 100.dp)
@@ -210,7 +210,7 @@ fun MechanicTable(data: List<MechanicAssetData>) {
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Button(
-                            onClick = { /* lihat */ },
+                            onClick = { onViewDetail(item.no) },
                             modifier = Modifier
                                 .weight(1f)
                                 .fillMaxHeight(),
@@ -267,6 +267,6 @@ private val dummyRepairData = listOf(
 @Composable
 fun MechanicDashboardPreview() {
     CmmsTheme {
-        MechanicDashboard()
+        MechanicDashboard(onLogout = {}, onViewDetail = {})
     }
 }
