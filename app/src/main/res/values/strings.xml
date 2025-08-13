@@ -1,0 +1,16 @@
+<resources>
+    <string name="app_name">CMMS</string>
+    <string name="detail_title">DETAIL %1$s %2$s TANGGAL %3$s</string>
+    <string name="btn_back">Kembali</string>
+    <string name="keterangan_pemeriksaan">PEMERIKSAAN RUTIN</string>
+    <string name="keterangan_rusak">RUSAK</string>
+    <string name="label_keterangan">KETERANGAN: %1$s</string>
+    <string name="status_selesai">SELESAI</string>
+    <string name="status_belum_selesai">BELUM SELESAI</string>
+    <string name="label_status">STATUS: %1$s</string>
+    <string name="label_kamera">Kamera:</string>
+    <string name="btn_ambil_foto">Ambil Foto</string>
+    <string name="label_deskripsi_material">Deskripsi Material:</string>
+    <string name="sample_material">BALL BEARING 6307 ZZ FAG</string>
+    <string name="btn_submit">Submit</string>
+</resources>
