@@ -70,5 +70,8 @@ dependencies {
     implementation(libs.ads.mobile.sdk)
     implementation("androidx.navigation:navigation-compose:2.6.0")
     implementation(libs.androidx.activity)
+    implementation(libs.androidx.room.ktx)
+
+    implementation("androidx.navigation:navigation-compose:2.7.7")
 }
 

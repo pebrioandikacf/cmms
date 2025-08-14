@@ -1,41 +1,41 @@
 package com.ptpn.cmms.unit
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavController
 import com.ptpn.cmms.ui.theme.CmmsTheme
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import androidx.annotation.RequiresApi
 import android.os.Build
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
-import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Visibility
 
-
-
-// Di atas/bawah semua @Composable
+// Tambahkan id pada MaintenanceItem supaya bisa dinavigasi
 data class MaintenanceItem(
+    val id: Int,
     val tanggal: String,
     val deskripsi: String,
     val status: String
@@ -44,7 +44,7 @@ data class MaintenanceItem(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun UnitDashboard(onLogout: () -> Unit = {}) {
+fun UnitDashboard(onLogout: () -> Unit = {}, navController: NavController? = null) {
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
     var showDataMasterSub by remember { mutableStateOf(false) }
@@ -55,9 +55,9 @@ fun UnitDashboard(onLogout: () -> Unit = {}) {
                 UnitDrawerHeader()
                 Spacer(Modifier.height(8.dp))
 
-                UnitDrawerItem("Dashboard", Icons.Filled.Home) { /* TODO */ }
+                UnitDrawerItem("Dashboard", Icons.Filled.Home) {}
 
-                // Menu dengan submenu
+                // Submenu Data Master
                 NavigationDrawerItem(
                     label = {
                         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -80,11 +80,11 @@ fun UnitDashboard(onLogout: () -> Unit = {}) {
                         title = "Data Mekanik",
                         icon = Icons.Filled.Person,
                         modifier = Modifier.padding(start = 32.dp)
-                    ) { /* TODO */ }
+                    ) {}
                 }
 
-                UnitDrawerItem("Assets", Icons.AutoMirrored.Filled.List) { /* TODO */ }
-                UnitDrawerItem("Jam Jalan Peralatan", Icons.Filled.Schedule) { /* TODO */ }
+                UnitDrawerItem("Assets", Icons.AutoMirrored.Filled.List) {}
+                UnitDrawerItem("Jam Jalan Peralatan", Icons.Filled.Schedule) {}
                 UnitDrawerItem("Logout", Icons.AutoMirrored.Filled.ExitToApp) { onLogout() }
             }
         },
@@ -102,7 +102,7 @@ fun UnitDashboard(onLogout: () -> Unit = {}) {
                 )
             }
         ) {
-            UnitDashboardContent(modifier = Modifier.padding(it))
+            UnitDashboardContent(modifier = Modifier.padding(it), navController = navController)
         }
     }
 }
@@ -136,16 +136,18 @@ fun UnitDrawerItem(
 }
 
 @Composable
-fun UnitDashboardContent(modifier: Modifier = Modifier) {
+fun UnitDashboardContent(modifier: Modifier = Modifier, navController: NavController? = null) {
     Column(
         modifier = modifier
             .fillMaxSize()
-            .verticalScroll(rememberScrollState()) // scroll untuk seluruh screen
+            .verticalScroll(rememberScrollState())
             .padding(4.dp),
         verticalArrangement = Arrangement.spacedBy(24.dp)
     ) {
-        // Header & status cards (tidak berubah)
+        // Header dashboard
         Text("Dashboard", style = MaterialTheme.typography.titleLarge)
+
+        // Status cards
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(16.dp)
@@ -156,9 +158,7 @@ fun UnitDashboardContent(modifier: Modifier = Modifier) {
                 icon = Icons.Filled.CalendarToday,
                 footerColor = Color(0xFFE53935),
                 changeText = "%change",
-                modifier = Modifier
-                    .weight(1f)
-                    .height(110.dp)
+                modifier = Modifier.weight(1f).height(110.dp)
             )
 
             StatusCard(
@@ -167,43 +167,42 @@ fun UnitDashboardContent(modifier: Modifier = Modifier) {
                 icon = Icons.Filled.Download,
                 footerColor = Color(0xFF00ACC1),
                 changeText = "%change",
-                modifier = Modifier
-                    .weight(1f)
-                    .height(110.dp)
+                modifier = Modifier.weight(1f).height(110.dp)
             )
         }
 
-
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            MaintenanceByDateSection()
+            // MaintenanceByDateSection1 tetap di atas (search by date untuk user)
+            MaintenanceByDateSection1()
         }
-        val dummyItems = listOf(
-            MaintenanceItem("01 Juni 2025", "Preventive Maintenance WHELL LOADER CAT 914 G PKS SPA", "Belum Dikerjakan"),
-            MaintenanceItem("02 Juni 2025", "Preventive Maintenance Screw Press No : 2", "Belum Dikerjakan"),
-            MaintenanceItem("10 Juni 2025", "Preventive Maintenance Genset No. 1", "Belum Dikerjakan"),
-            MaintenanceItem("12 Juni 2025", "Preventive Maintenance Pump Air Sungai", "Belum Dikerjakan"),
-            MaintenanceItem("15 Juni 2025", "Preventive Maintenance Boiler Unit 1", "Belum Dikerjakan"),
-            MaintenanceItem("18 Juni 2025", "Preventive Maintenance Sterilizer No. 3", "Belum Dikerjakan"),
-            MaintenanceItem("20 Juni 2025", "Preventive Maintenance Conveyor Loading Ramp", "Belum Dikerjakan"),
-            MaintenanceItem("22 Juni 2025", "Preventive Maintenance Kernel Plant", "Belum Dikerjakan"),
-            MaintenanceItem("25 Juni 2025", "Preventive Maintenance Press Cake Breaker", "Belum Dikerjakan"),
-            MaintenanceItem("28 Juni 2025", "Preventive Maintenance Vibrating Screen", "Belum Dikerjakan"),
-            MaintenanceItem("01 Juli 2025", "Preventive Maintenance Screw Press No : 1", "Belum Dikerjakan"),
-            MaintenanceItem("03 Juli 2025", "Preventive Maintenance Clarifier Tank", "Belum Dikerjakan"),
-            MaintenanceItem("05 Juli 2025", "Preventive Maintenance Kernel Silo", "Belum Dikerjakan"),
-            MaintenanceItem("08 Juli 2025", "Preventive Maintenance Genset No. 2", "Belum Dikerjakan"),
-            MaintenanceItem("10 Juli 2025", "Preventive Maintenance Sterilizer No. 2", "Belum Dikerjakan"),
-            MaintenanceItem("12 Juli 2025", "Preventive Maintenance Boiler Unit 2", "Belum Dikerjakan"),
-            MaintenanceItem("15 Juli 2025", "Preventive Maintenance Sand Filter", "Belum Dikerjakan"),
-            MaintenanceItem("18 Juli 2025", "Preventive Maintenance Conveyor Press Cake", "Belum Dikerjakan"),
-            MaintenanceItem("20 Juli 2025", "Preventive Maintenance Cooling Tower", "Belum Dikerjakan"),
-            MaintenanceItem("22 Juli 2025", "Preventive Maintenance Oil Purifier", "Belum Dikerjakan"),
-            MaintenanceItem("25 Juli 2025", "Preventive Maintenance Elevator Press Cake", "Belum Dikerjakan"),
-            MaintenanceItem("28 Juli 2025", "Preventive Maintenance Hydraulic System", "Belum Dikerjakan"),
-            MaintenanceItem("30 Juli 2025", "Preventive Maintenance Sterilizer No. 1", "Belum Dikerjakan"),
-            MaintenanceItem("01 Agustus 2025", "Preventive Maintenance Air Compressor", "Belum Dikerjakan")
+
+        // Dummy data (contoh ada id sekarang)
+        val belumItems = listOf(
+            MaintenanceItem(1, "01 Juni 2025", "Preventive Maintenance WHELL LOADER CAT 914 G PKS SPA", "Belum Dikerjakan"),
+            MaintenanceItem(2, "02 Juni 2025", "Preventive Maintenance Screw Press No : 2", "Belum Dikerjakan"),
         )
-        MaintenanceListTable(items = dummyItems)
+
+        val selesaiItems = listOf(
+            MaintenanceItem(3, "28 Mei 2025", "Overhaul Boiler No. 1", "Selesai"),
+            MaintenanceItem(4, "29 Mei 2025", "Penggantian Belt Conveyor", "Selesai")
+        )
+
+        // Tabel Pemeliharaan Belum Dikerjakan
+        TabelPemeliharaanBelum(items = belumItems)
+
+        // Tabel Pemeliharaan Sudah Dikerjakan (kirim navController yang didapat dari DashboardActivity)
+        TabelPemeliharaanSelesai(
+            items = selesaiItems,
+            navController = navController
+        )
+
+        // Pindahkan MaintenanceByDateSection2 supaya muncul di BAWAH semua tabel
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            MaintenanceByDateSection2()
+        }
+
+        // Jika ada fungsi TabelPerbaikanBelum/TabelPerbaikanSelesai eksternal, hapus/diperbaiki.
+        // Di sini kita sudah menggunakan TabelPemeliharaanBelum / TabelPemeliharaanSelesai yang didefinisikan di file ini.
     }
 }
 
@@ -290,7 +289,7 @@ fun StatusCard(
 // Awal List Search Box Pertanggal
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
-fun MaintenanceByDateSection() {
+fun MaintenanceByDateSection1() {
     val today = remember { LocalDate.now() }
     val formatter = DateTimeFormatter.ofPattern("dd MMMM yyyy")
     val formattedDate = today.format(formatter)
@@ -335,7 +334,7 @@ fun MaintenanceByDateSection() {
         }
 
         Spacer(modifier = Modifier.height(16.dp))
-//        Divider(color = Color.LightGray)
+        Divider(color = Color.LightGray)
         Spacer(modifier = Modifier.height(12.dp))
 
         // Header kolom
@@ -366,9 +365,7 @@ fun MaintenanceByDateSection() {
 // Akhir List Search Box Pertanggal
 
 
-
-
-//-->Awal list Asset belum di kerjakan<--
+//-->Awal list Pemeliharaan Asset belum di kerjakan<--
 
 @Composable
 fun ShowEntriesSection(
@@ -437,7 +434,7 @@ fun SearchSection(
 }
 
 @Composable
-fun MaintenanceListTable(items: List<MaintenanceItem>) {
+fun TabelPemeliharaanBelum(items: List<MaintenanceItem>) {
     val cellBorderColor = Color(0xFFBDBDBD)
 
     var searchQuery by remember { mutableStateOf("") }
@@ -526,15 +523,15 @@ fun MaintenanceListTable(items: List<MaintenanceItem>) {
             ) {
                 listOf(
                     "No",                                     // Tetap "No"
-                    if (isSmallScreen) "Tgl" else "Tanggal",  // Ubah kalau kecil
+                    "Tanggal",  // Ubah kalau kecil
                     "Deskripsi",
                     "Status",
                     "Aksi"
                 ).forEachIndexed { index, title ->
                     val weight = when (index) {
                         0 -> 0.5f
-                        1 -> 0.7f
-                        2 -> 1.8f
+                        1 -> 0.9f
+                        2 -> 1.6f
                         3 -> 1.1f
                         4 -> 1.0f
                         else -> 1f
@@ -575,7 +572,7 @@ fun MaintenanceListTable(items: List<MaintenanceItem>) {
                 }
                 Box(
                     modifier = Modifier
-                        .weight(0.7f)
+                        .weight(0.9f)
                         .fillMaxHeight()
                         .border(0.5.dp, cellBorderColor)
                         .padding(6.dp),
@@ -585,7 +582,7 @@ fun MaintenanceListTable(items: List<MaintenanceItem>) {
                 }
                 Box(
                     modifier = Modifier
-                        .weight(1.8f)
+                        .weight(1.6f)
                         .fillMaxHeight()
                         .border(0.5.dp, cellBorderColor)
                         .padding(6.dp),
@@ -611,8 +608,10 @@ fun MaintenanceListTable(items: List<MaintenanceItem>) {
                         .padding(4.dp)
                 ) {
                     Column(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .fillMaxHeight(), // biar bisa di-center secara vertikal
+                        verticalArrangement = Arrangement.Center, // posisi vertikal di tengah
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Button(
@@ -622,10 +621,16 @@ fun MaintenanceListTable(items: List<MaintenanceItem>) {
                             contentPadding = PaddingValues(vertical = 2.dp),
                             shape = RoundedCornerShape(4.dp)
                         ) {
-                            Icon(Icons.Default.Visibility, contentDescription = "Lihat", tint = Color.White, modifier = Modifier.size(14.dp))
+                            Icon(
+                                Icons.Default.Visibility,
+                                contentDescription = "Lihat",
+                                tint = Color.White,
+                                modifier = Modifier.size(14.dp)
+                            )
                             Spacer(Modifier.width(4.dp))
                             Text("Lihat", color = Color.White, fontSize = 11.sp)
                         }
+                        Spacer(Modifier.height(4.dp))
                         Button(
                             onClick = { /* Hapus */ },
                             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE53935)),
@@ -633,7 +638,12 @@ fun MaintenanceListTable(items: List<MaintenanceItem>) {
                             contentPadding = PaddingValues(vertical = 2.dp),
                             shape = RoundedCornerShape(4.dp)
                         ) {
-                            Icon(Icons.Default.Delete, contentDescription = "Hapus", tint = Color.White, modifier = Modifier.size(14.dp))
+                            Icon(
+                                Icons.Default.Delete,
+                                contentDescription = "Hapus",
+                                tint = Color.White,
+                                modifier = Modifier.size(14.dp)
+                            )
                             Spacer(Modifier.width(4.dp))
                             Text("Hapus", color = Color.White, fontSize = 11.sp)
                         }
@@ -663,28 +673,35 @@ fun TableFooter(
     onPageClick: (Int) -> Unit
 ) {
     val cellBorderColor = Color.Gray
-    val cellHeight = 28.dp // semua sama tinggi
-    val navWidth = 60.dp   // lebar untuk Previous & Next
-    val pageWidth = 28.dp  // lebar untuk angka
+    val cellHeight = 28.dp
+    val navWidth = 60.dp
+    val pageWidth = 28.dp
     val fontSizeNav = 10.sp
     val fontSizePage = 9.sp
 
-    Row(
+    Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(top = 4.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
+            .padding(top = 4.dp)
     ) {
-        // Kiri: teks showing
-        Text(
-            text = "Showing ${(currentPage - 1) * 10 + 1} to ${minOf(currentPage * 10, totalPages * 10)} of ${totalPages * 10} entries",
-            fontSize = 12.sp
-        )
+        // Baris pertama: Showing di kiri
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.Start,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "Showing ${(currentPage - 1) * 10 + 1} to ${minOf(currentPage * 10, totalPages * 10)} of ${totalPages * 10} entries",
+                fontSize = 12.sp
+            )
+        }
 
-        // Kanan: pagination
-        Row(verticalAlignment = Alignment.CenterVertically) {
-
+        // Baris kedua: Pagination di kanan
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.End,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
             // Previous
             Box(
                 modifier = Modifier
@@ -697,13 +714,11 @@ fun TableFooter(
                 Text("Previous", fontSize = fontSizeNav)
             }
 
-            // Hitung halaman (max 2 angka)
+            // Hitung halaman
             val pageNumbers = mutableListOf<Int>()
             if (totalPages <= 2) {
-                // Kalau total halaman <= 2, tampil semua
                 for (i in 1..totalPages) pageNumbers.add(i)
             } else {
-                // Kalau banyak halaman, ambil max 2 angka di sekitar current
                 val startPage = maxOf(1, currentPage - 1)
                 val endPage = minOf(totalPages, startPage + 1)
                 for (i in startPage..endPage) pageNumbers.add(i)
@@ -741,14 +756,304 @@ fun TableFooter(
                 Text("Next", fontSize = fontSizeNav)
             }
         }
+
     }
 }
 //-->Akhir list Asset belum di kerjakan<--
+
+
+//-->Awal List Asset yang sudah di kerjakan<--
+
+@Composable
+fun TabelPemeliharaanSelesai(items: List<MaintenanceItem>, navController: NavController?) {
+    val cellBorderColor = Color(0xFFBDBDBD)
+
+    var searchQuery by remember { mutableStateOf("") }
+    var selectedEntries by remember { mutableStateOf(10) }
+    var showDropdown by remember { mutableStateOf(false) }
+
+    val filteredItems = items.filter {
+        it.deskripsi.contains(searchQuery, ignoreCase = true) ||
+                it.status.contains(searchQuery, ignoreCase = true) ||
+                it.tanggal.contains(searchQuery, ignoreCase = true)
+    }.take(selectedEntries)
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .border(1.dp, Color.LightGray, RoundedCornerShape(8.dp))
+            .background(Color.White, RoundedCornerShape(8.dp))
+            .padding(16.dp)
+    ) {
+        // Judul
+        Text(
+            text = "List Pemeliharaan Asset Sudah Dikerjakan",
+            fontSize = 18.sp,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(bottom = 12.dp)
+        )
+
+        // Show + Search responsif (sama dengan list Belum Dikerjakan)
+        BoxWithConstraints(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 16.dp)
+        ) {
+            val isWide = this.maxWidth > 500.dp
+
+            if (isWide) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    ShowEntriesSection(
+                        selectedEntries = selectedEntries,
+                        onSelect = { selectedEntries = it },
+                        showDropdown = showDropdown,
+                        onShowDropdownChange = { showDropdown = it }
+                    )
+
+                    SearchSection(
+                        searchQuery = searchQuery,
+                        onSearchChange = { searchQuery = it }
+                    )
+                }
+            } else {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    ShowEntriesSection(
+                        selectedEntries = selectedEntries,
+                        onSelect = { selectedEntries = it },
+                        showDropdown = showDropdown,
+                        onShowDropdownChange = { showDropdown = it }
+                    )
+
+                    SearchSection(
+                        searchQuery = searchQuery,
+                        onSearchChange = { searchQuery = it }
+                    )
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // Header tabel
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(IntrinsicSize.Min)
+        ) {
+            listOf("No", "Tanggal", "Deskripsi", "Status", "Aksi").forEachIndexed { index, title ->
+                val weight = when (index) {
+                    0 -> 0.5f
+                    1 -> 0.9f
+                    2 -> 1.6f
+                    3 -> 1.1f
+                    4 -> 1.0f
+                    else -> 1f
+                }
+                Box(
+                    modifier = Modifier
+                        .weight(weight)
+                        .fillMaxHeight()
+                        .border(0.5.dp, cellBorderColor)
+                        .background(Color(0xFFE0E0E0))
+                        .padding(6.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(title, fontWeight = FontWeight.Bold, fontSize = 13.sp, maxLines = 1)
+                }
+            }
+        }
+
+        // Isi tabel
+        filteredItems.forEachIndexed { index, item ->
+            val bgColor = if (index % 2 == 0) Color.White else Color(0xFFF5F5F5)
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(IntrinsicSize.Min)
+                    .background(bgColor)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .weight(0.5f)
+                        .fillMaxHeight()
+                        .border(0.5.dp, cellBorderColor)
+                        .padding(6.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("${index + 1}", fontSize = 12.sp)
+                }
+                Box(
+                    modifier = Modifier
+                        .weight(0.9f)
+                        .fillMaxHeight()
+                        .border(0.5.dp, cellBorderColor)
+                        .padding(6.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(item.tanggal, fontSize = 12.sp)
+                }
+                Box(
+                    modifier = Modifier
+                        .weight(1.6f)
+                        .fillMaxHeight()
+                        .border(0.5.dp, cellBorderColor)
+                        .padding(6.dp),
+                    contentAlignment = Alignment.CenterStart
+                ) {
+                    Text(item.deskripsi, fontSize = 12.sp)
+                }
+                Box(
+                    modifier = Modifier
+                        .weight(1.1f)
+                        .fillMaxHeight()
+                        .border(0.5.dp, cellBorderColor)
+                        .padding(6.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(item.status, fontSize = 12.sp, color = Color(0xFF4CAF50))
+                }
+                Box(
+                    modifier = Modifier
+                        .weight(1.0f)
+                        .fillMaxHeight()
+                        .border(0.5.dp, cellBorderColor)
+                        .padding(4.dp)
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .fillMaxHeight(),
+                        verticalArrangement = Arrangement.Center,
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Button(
+                            onClick = { navController?.navigate("detail_pemeliharaan/${item.id}") },
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2196F3)),
+                            modifier = Modifier.fillMaxWidth(),
+                            contentPadding = PaddingValues(vertical = 2.dp),
+                            shape = RoundedCornerShape(4.dp)
+                        ) {
+                            Icon(Icons.Default.Visibility, contentDescription = "Lihat", tint = Color.White, modifier = Modifier.size(14.dp))
+                            Spacer(Modifier.width(4.dp))
+                            Text("Lihat", color = Color.White, fontSize = 11.sp)
+                        }
+                        Spacer(Modifier.height(4.dp))
+                        Button(
+                            onClick = { /* Hapus */ },
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE53935)),
+                            modifier = Modifier.fillMaxWidth(),
+                            contentPadding = PaddingValues(vertical = 2.dp),
+                            shape = RoundedCornerShape(4.dp)
+                        ) {
+                            Icon(Icons.Default.Delete, contentDescription = "Hapus", tint = Color.White, modifier = Modifier.size(14.dp))
+                            Spacer(Modifier.width(4.dp))
+                            Text("Hapus", color = Color.White, fontSize = 11.sp)
+                        }
+                    }
+                }
+            }
+        }
+
+        // Footer
+        TableFooter(
+            currentPage = 1,
+            totalPages = 2,
+            onPrevious = { /* prev */ },
+            onNext = { /* next */ },
+            onPageClick = { /* page */ }
+        )
+    }
+}
+//-->Akhir List Asset yang sudah di kerjakan<--
+
+@RequiresApi(Build.VERSION_CODES.O)
+@Composable
+fun MaintenanceByDateSection2() {
+    val today = remember { LocalDate.now() }
+    val formatter = DateTimeFormatter.ofPattern("dd MMMM yyyy")
+    val formattedDate = today.format(formatter)
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .border(1.dp, Color.LightGray, RoundedCornerShape(8.dp))
+            .background(Color.White, RoundedCornerShape(8.dp))
+            .padding(16.dp)
+    ) {
+        Text(
+            text = "List Perbaikan Asset Tanggal $formattedDate",
+            fontSize = 18.sp,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(bottom = 12.dp)
+        )
+
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(bottom = 12.dp)
+        ) {
+            Text("Tanggal", fontSize = 16.sp, modifier = Modifier.width(80.dp))
+            OutlinedTextField(
+                value = formattedDate,
+                onValueChange = {},
+                readOnly = true,
+                trailingIcon = {
+                    Icon(Icons.Default.DateRange, contentDescription = "Tanggal")
+                },
+                modifier = Modifier.width(220.dp)
+            )
+        }
+
+        Button(
+            onClick = { /* ambil data nanti */ },
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF17C0EB)),
+            modifier = Modifier.width(100.dp),
+            shape= RectangleShape
+        ) {
+            Text("Submit", color = Color.White)
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+        Divider(color = Color.LightGray)
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // Header kolom
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .background(Color(0xFFE0E0E0))
+                .padding(vertical = 8.dp),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text("#", modifier = Modifier.weight(0.2f), fontWeight = FontWeight.Bold)
+            Text("Deskripsi", modifier = Modifier.weight(1f), fontWeight = FontWeight.Bold)
+            Text("Status", modifier = Modifier.weight(0.8f), fontWeight = FontWeight.Bold)
+            Text("Action", modifier = Modifier.weight(0.8f), fontWeight = FontWeight.Bold)
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // Teks placeholder sementara kosong
+        Text(
+            "Belum ada data untuk ditampilkan.",
+            fontSize = 14.sp,
+            color = Color.Gray,
+            modifier = Modifier.padding(top = 8.dp)
+        )
+    }
+}
 
 @Preview(showBackground = true)
 @Composable
 fun UnitDashboardPreview() {
     CmmsTheme {
+        // untuk preview kita tidak punya NavController, jadi panggil tanpa navController
         UnitDashboard()
     }
 }

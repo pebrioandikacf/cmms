@@ -16,7 +16,27 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.Cmms">
-        <!-- FileProvider: untuk berbagi file (foto) ke camera intent -->
+        <activity
+            android:name=".unit.Detail_Pemeliharaan"
+            android:exported="false" />
+        <activity
+            android:name=".unit.Detail_Perbaikan"
+            android:exported="false" />
+        <activity
+            android:name=".unit.TabelPemeliharaanBelum"
+            android:exported="false" />
+        <activity
+            android:name=".unit.PemeliharaanPertanggal"
+            android:exported="false" />
+        <activity
+            android:name=".unit.PemeliharaanSelesai"
+            android:exported="false" />
+        <activity
+            android:name=".unit.PemeliharaanBelum"
+            android:exported="false" />
+        <activity
+            android:name=".unit.StatusCard"
+            android:exported="false" /> <!-- FileProvider: untuk berbagi file (foto) ke camera intent -->
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.provider"

@@ -39,7 +39,7 @@ import com.ptpn.cmms.unit.ShowEntriesSection
 import com.ptpn.cmms.unit.TableFooter
 
 @Composable
-fun TabelPemeliharaanSelesai(items: List<MaintenanceItem>) {
+fun TabelPerbaikanSelesai(items: List<MaintenanceItem>) {
     val cellBorderColor = Color(0xFFBDBDBD)
 
     var searchQuery by remember { mutableStateOf("") }
@@ -61,7 +61,7 @@ fun TabelPemeliharaanSelesai(items: List<MaintenanceItem>) {
     ) {
         // Judul
         Text(
-            text = "List Pemeliharaan Asset Sudah Dikerjakan",
+            text = "List Perbaikan Asset Sudah Dikerjakan",
             fontSize = 18.sp,
             fontWeight = FontWeight.Bold,
             modifier = Modifier.padding(bottom = 12.dp)
