@@ -1,4 +1,3 @@
-// File: DashboardActivity.kt
 package com.ptpn.cmms
 
 import android.os.Bundle
@@ -13,13 +12,14 @@ import com.ptpn.cmms.mechanic.AssetMechanicScreen
 import com.ptpn.cmms.mechanic.DetailMechanicDashboard
 import com.ptpn.cmms.mechanic.MechanicDashboard
 import com.ptpn.cmms.ui.theme.CmmsTheme
+import com.ptpn.cmms.unit.Detail_Pemeliharaan
 import com.ptpn.cmms.unit.UnitDashboard
 
 class DashboardActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            CmmsTheme(dynamicColor = false) { // gunakan tema CMMS tanpa dynamic color
+            CmmsTheme(dynamicColor = false) {
                 val navController = rememberNavController()
 
                 NavHost(navController = navController, startDestination = "login") {
@@ -46,7 +46,8 @@ class DashboardActivity : ComponentActivity() {
                                 navController.navigate("login") {
                                     popUpTo("unit_dashboard") { inclusive = true }
                                 }
-                            }
+                            },
+                            navController = navController
                         )
                     }
 
@@ -59,42 +60,35 @@ class DashboardActivity : ComponentActivity() {
                                 }
                             },
                             onAssetsClick = {
-                                // navigate to asset list screen
                                 navController.navigate("asset_mechanic")
                             },
                             onViewDetail = { itemId ->
-                                // navigate to detail screen with integer argument
                                 navController.navigate("detail/$itemId")
                             }
                         )
                     }
 
-                    // Mechanic Asset list (screen yang kamu buat: AssetMechanicScreen)
+                    // Mechanic Asset list
                     composable("asset_mechanic") {
                         AssetMechanicScreen(
                             onBack = {
-                                // coba pop sampai mechanic_dashboard (jika ada di back stack)
                                 val popped = navController.popBackStack("mechanic_dashboard", false)
                                 if (!popped) {
-                                    // jika tidak ada, navigasikan ke mechanic_dashboard
                                     navController.navigate("mechanic_dashboard") {
-                                        // hindari duplikat di back stack
                                         launchSingleTop = true
                                     }
                                 }
                             },
                             onViewAsset = { assetId ->
-                                // arahkan mis. ke same detail route
                                 navController.navigate("detail/$assetId")
                             },
                             onUpdateAsset = { assetId ->
-                                // contoh: navigasi ke edit screen (opsional)
                                 // navController.navigate("asset_edit/$assetId")
                             }
                         )
                     }
 
-                    // Detail Mekanik Dashboard (mengharapkan itemId Int)
+                    // Detail Mekanik Dashboard
                     composable(
                         "detail/{itemId}",
                         arguments = listOf(navArgument("itemId") { type = NavType.IntType })
@@ -104,6 +98,15 @@ class DashboardActivity : ComponentActivity() {
                             itemId = id,
                             onBack = { navController.popBackStack() }
                         )
+                    }
+
+                    // Detail Pemeliharaan Unit
+                    composable(
+                        route = "detail_pemeliharaan/{id}",
+                        arguments = listOf(navArgument("id") { type = NavType.IntType })
+                    ) { backStackEntry ->
+                        val id = backStackEntry.arguments?.getInt("id")
+                        Detail_Pemeliharaan(id = id)
                     }
                 }
             }
