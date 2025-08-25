@@ -47,7 +47,7 @@ dependencies {
     // BOM untuk Compose
     implementation(platform(libs.androidx.compose.bom))
 
-    // Core & Activity
+    // Core & Activity (gunakan activity-compose untuk Compose)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.activity.compose)
 
@@ -57,18 +57,32 @@ dependencies {
     implementation(libs.androidx.ui.tooling)
     implementation(libs.androidx.ui.tooling.preview)
 
-    // Material3
-    implementation("androidx.compose.material3:material3:${libs.versions.material3.get()}")
+    // Material (Compose) dan Material3
+    implementation("androidx.compose.material:material")                         // Material (compose)
+    implementation("androidx.compose.material:material-icons-extended")         // Material icons (compose)
+    implementation("androidx.compose.material3:material3:${libs.versions.material3.get()}") // Material3 (sudah kamu pakai)
 
-    // ✅ Ganti ini
-    implementation("androidx.compose.material:material-icons-extended:<versi_compose>")
+    // Navigation Compose
+    implementation("androidx.navigation:navigation-compose:2.6.0")
 
-    // Library lain yang kamu butuhkan…
+    // Coil untuk image loading
+    implementation("io.coil-kt:coil-compose:2.4.0")
+
+    // ZXing (QR)
+    implementation("com.google.zxing:core:3.5.1")
+    implementation("com.journeyapps:zxing-android-embedded:4.3.0")
+
+    // AndroidX / Material legacy libs kamu
     implementation(libs.androidx.appcompat)
     implementation(libs.material)
     implementation(libs.androidx.constraintlayout)
+
+    // Ads / lainnya (tetap di sini jika memang perlu)
     implementation(libs.ads.mobile.sdk)
-    implementation("androidx.navigation:navigation-compose:2.6.0")
-    implementation(libs.androidx.activity)
+
+    // Opsional tapi direkomendasikan untuk nanti (ViewModel & Coroutines)
+    implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.6.1")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
 }
+
 

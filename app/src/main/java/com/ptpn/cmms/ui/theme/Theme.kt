@@ -2,41 +2,104 @@ package com.ptpn.cmms.ui.theme
 
 import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.material3.*
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Shapes
+import androidx.compose.material3.Typography
+import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.dynamicDarkColorScheme
+import androidx.compose.material3.dynamicLightColorScheme
+import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.graphics.Color
 
-// Pastikan CMMS_* dideklarasikan di Color.kt dalam package yang sama.
-// Contoh: CMMS_Primary, CMMS_OnPrimary, CMMS_Secondary, CMMS_OnSecondary, CMMS_Background, CMMS_Surface, CMMS_SurfaceVariant, CMMS_OnSurface, CMMS_Error
-
+// --- Colors (pakai yang sudah Anda punya) ---
 private val LightColorScheme = lightColorScheme(
     primary = CMMS_Primary,
     onPrimary = CMMS_OnPrimary,
+    primaryContainer = CMMS_PrimaryContainer,
+    onPrimaryContainer = CMMS_OnPrimary,
+
     secondary = CMMS_Secondary,
     onSecondary = CMMS_OnSecondary,
-    tertiary = androidx.compose.ui.graphics.Color(0xFFB0BEC5),
+
     background = CMMS_Background,
-    onBackground = CMMS_OnSurface,
+    onBackground = CMMS_OnBackground,
+
     surface = CMMS_Surface,
     onSurface = CMMS_OnSurface,
+
     surfaceVariant = CMMS_SurfaceVariant,
-    error = CMMS_Error
+    onSurfaceVariant = CMMS_OnSurfaceVariant,
+
+    error = CMMS_Error,
+    onError = CMMS_OnError,
+
 )
 
 private val DarkColorScheme = darkColorScheme(
-    primary = androidx.compose.ui.graphics.Color(0xFF90CAF9),
-    onPrimary = androidx.compose.ui.graphics.Color.Black,
+    primary = CMMS_PrimaryContainer,
+    onPrimary = CMMS_OnPrimary,
+    primaryContainer = CMMS_Primary,
+    onPrimaryContainer = CMMS_OnPrimary,
+
     secondary = CMMS_Secondary,
     onSecondary = CMMS_OnSecondary,
-    tertiary = androidx.compose.ui.graphics.Color(0xFFB0BEC5),
-    background = androidx.compose.ui.graphics.Color(0xFF121212),
-    onBackground = androidx.compose.ui.graphics.Color.White,
-    surface = androidx.compose.ui.graphics.Color(0xFF1E1E1E),
-    onSurface = androidx.compose.ui.graphics.Color.White,
-    surfaceVariant = androidx.compose.ui.graphics.Color(0xFF2A2A2A),
-    error = CMMS_Error
+
+    background = Color(0xFF081118),
+    onBackground = CMMS_OnPrimary,
+
+    surface = Color(0xFF0D1A24),
+    onSurface = CMMS_OnPrimary,
+
+    surfaceVariant = Color(0xFF16252C),
+    onSurfaceVariant = CMMS_OnPrimary,
+
+    error = CMMS_Error,
+    onError = CMMS_OnError
 )
 
+// --- Shapes: definisikan sebagai value (hindari nama yang bentrok) ---
+val AppShapes = Shapes(
+    // default Material3 Shapes takes small/medium/large as CornerBasedShape
+    // gunakan RoundedCornerShape supaya konsisten dengan UI Anda
+    small = androidx.compose.foundation.shape.RoundedCornerShape(8.dp),
+    medium = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),
+    large = androidx.compose.foundation.shape.RoundedCornerShape(20.dp)
+)
+
+// --- Typography minimal (sesuaikan jika Anda punya font family custom) ---
+val AppTypography = Typography(
+    bodyLarge = TextStyle(
+        fontWeight = FontWeight.Normal,
+        fontSize = 16.sp,
+        lineHeight = 24.sp
+    ),
+    bodyMedium = TextStyle(
+        fontWeight = FontWeight.Normal,
+        fontSize = 14.sp,
+        lineHeight = 20.sp
+    ),
+    titleLarge = TextStyle(
+        fontWeight = FontWeight.SemiBold,
+        fontSize = 20.sp,
+        lineHeight = 28.sp
+    ),
+    titleMedium = TextStyle(
+        fontWeight = FontWeight.SemiBold,
+        fontSize = 16.sp
+    ),
+    titleSmall = TextStyle(
+        fontWeight = FontWeight.SemiBold,
+        fontSize = 14.sp
+    )
+)
+
+// --- Theme wrapper ---
 @Composable
 fun CmmsTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
@@ -54,8 +117,8 @@ fun CmmsTheme(
 
     MaterialTheme(
         colorScheme = colorScheme,
-        typography = Typography,
-        // shapes = Shapes // <= jangan pakai jika kamu belum mendeklarasikan Shapes val
+        typography = AppTypography,
+        shapes = AppShapes,
         content = content
     )
 }

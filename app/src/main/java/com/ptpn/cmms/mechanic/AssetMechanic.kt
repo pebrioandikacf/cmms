@@ -3,6 +3,8 @@ package com.ptpn.cmms.mechanic
 
 import android.annotation.SuppressLint
 import android.content.res.Configuration
+import android.content.Intent
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
@@ -14,16 +16,16 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ptpn.cmms.ui.component.CmmsCard
@@ -36,7 +38,8 @@ private val UPDATE_COLOR = Color(0xFFF28C6F)
 
 data class AssetItem(val id: Int, val kode: String, val nama: String, val lokasi: String, val status: String)
 
-private val dummyAssets = List(233) { i ->
+// NOTE: made public so NavGraph / other screens can reuse same dummy data if needed
+val dummyAssets = List(233) { i ->
     AssetItem(
         id = i + 1,
         kode = "1000110%03d".format(i + 1),
@@ -54,115 +57,88 @@ fun AssetMechanicScreen(
     onViewAsset: (Int) -> Unit = {},
     onUpdateAsset: (Int) -> Unit = {}
 ) {
-    // state
-    var searchQuery by rememberSaveable { mutableStateOf("") }
-    var selectedEntries by rememberSaveable { mutableIntStateOf(10) }
-    var showDropdown by remember { mutableStateOf(false) }
-    val entriesOptions = listOf(10, 25, 50, 100)
-    var currentPage by rememberSaveable { mutableIntStateOf(1) }
+    // states (compact names)
+    var q by rememberSaveable { mutableStateOf("") }
+    var perSel by rememberSaveable { mutableIntStateOf(10) }
+    var showEntries by remember { mutableStateOf(false) }
+    var page by rememberSaveable { mutableIntStateOf(1) }
+    val entryOptions = listOf(10, 25, 50, 100)
 
-    // deteksi orientasi layar (untuk penyesuaian kalau perlu)
-    val configuration = LocalConfiguration.current
-    val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+    val cfg = LocalConfiguration.current
+    val isLandscape = cfg.orientation == Configuration.ORIENTATION_LANDSCAPE
 
-    // filter + paging
-    val filtered = remember(searchQuery) {
-        if (searchQuery.isBlank()) dummyAssets
+    // filter & paging
+    val filtered = remember(q) {
+        if (q.isBlank()) dummyAssets
         else {
-            val q = searchQuery.lowercase()
+            val s = q.lowercase()
             dummyAssets.filter { a ->
-                a.nama.lowercase().contains(q) ||
-                        a.kode.lowercase().contains(q) ||
-                        a.lokasi.lowercase().contains(q) ||
-                        a.status.lowercase().contains(q)
+                a.nama.lowercase().contains(s) ||
+                        a.kode.lowercase().contains(s) ||
+                        a.lokasi.lowercase().contains(s) ||
+                        a.status.lowercase().contains(s)
             }
         }
     }
 
-    val perPage = max(1, selectedEntries)
-    val totalFiltered = filtered.size
-    val totalPages = max(1, ceil(totalFiltered.toDouble() / perPage.toDouble()).toInt())
+    val perPage = max(1, perSel)
+    val total = filtered.size
+    val totalPages = max(1, ceil(total.toDouble() / perPage.toDouble()).toInt())
 
-    LaunchedEffect(perPage, totalFiltered) {
-        if (currentPage > totalPages) currentPage = totalPages
-        if (currentPage < 1) currentPage = 1
-    }
+    LaunchedEffect(perPage, total) { page = page.coerceIn(1, totalPages) }
 
-    val fromIndex = (currentPage - 1) * perPage
-    val displayed = remember(filtered, currentPage, perPage) {
-        if (filtered.isEmpty()) listOf() else filtered.drop(fromIndex).take(perPage)
-    }
-    val showingStart = if (totalFiltered == 0) 0 else fromIndex + 1
-    val showingEnd = if (totalFiltered == 0) 0 else fromIndex + displayed.size
+    val from = (page - 1) * perPage
+    val displayed = remember(filtered, page, perPage) { if (filtered.isEmpty()) listOf() else filtered.drop(from).take(perPage) }
+    val showingStart = if (total == 0) 0 else from + 1
+    val showingEnd = if (total == 0) 0 else from + displayed.size
 
-    // layout constants
-    val colNo = 56.dp
-    val colKategori = 120.dp
-    val colNomor = 120.dp
-    val colMesin = 220.dp
-    val colArea = 120.dp
-    val colAction = 420.dp // <-- diperbesar agar ruang aksi lebih longgar
-    val tableWidth = colNo + colKategori + colNomor + colMesin + colArea + colAction + 24.dp
+    // layout sizes
+    val cNo = 56.dp; val cKat = 120.dp; val cNom = 120.dp; val cMes = 220.dp; val cArea = 120.dp; val cAct = 420.dp
+    val tableW = cNo + cKat + cNom + cMes + cArea + cAct + 24.dp
+    val hScroll = rememberScrollState()
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Asset Mekanik", color = MaterialTheme.colorScheme.onPrimary) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Kembali", tint = MaterialTheme.colorScheme.onPrimary)
-                    }
-                },
-                // removed manual view mode toggle: UI is now always auto (responsive)
+                title = { Text("Asset Mekanik",
+                    color = MaterialTheme.colorScheme.onPrimary,
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.SemiBold) },
+                navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Kembali", tint = MaterialTheme.colorScheme.onPrimary) } },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.primary)
             )
         },
         containerColor = MaterialTheme.colorScheme.background
     ) { padding ->
-        // Use a single LazyColumn so the whole screen scrolls vertically (header + table + footer)
-        val tableHScroll = rememberScrollState() // shared horizontal ScrollState for header + rows
         LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .padding(16.dp),
+            modifier = Modifier.fillMaxSize().padding(padding).padding(16.dp),
             contentPadding = PaddingValues(bottom = 24.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            item {
-                Text("Data Assets", style = MaterialTheme.typography.titleLarge)
-            }
+            item { Text("Data Assets", style = MaterialTheme.typography.titleLarge) }
 
             item {
                 CmmsCard {
                     Column(Modifier.fillMaxWidth().animateContentSize()) {
                         // controls
-                        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+                        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Text("Show", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 Spacer(Modifier.width(8.dp))
                                 Box {
-                                    OutlinedButton(onClick = { showDropdown = !showDropdown }, modifier = Modifier.height(40.dp), shape = RoundedCornerShape(8.dp)) {
-                                        Text("$selectedEntries", fontSize = 13.sp)
-                                        Icon(Icons.Default.ArrowDropDown, contentDescription = "Open entries")
+                                    OutlinedButton(onClick = { showEntries = !showEntries }, modifier = Modifier.height(40.dp), shape = RoundedCornerShape(8.dp)) {
+                                        Text("$perSel", fontSize = 13.sp); Icon(Icons.Default.ArrowDropDown, contentDescription = null)
                                     }
-                                    DropdownMenu(expanded = showDropdown, onDismissRequest = { showDropdown = false }) {
-                                        entriesOptions.forEach { n ->
-                                            DropdownMenuItem(text = { Text(n.toString()) }, onClick = {
-                                                selectedEntries = n
-                                                currentPage = 1
-                                                showDropdown = false
-                                            })
-                                        }
+                                    DropdownMenu(expanded = showEntries, onDismissRequest = { showEntries = false }) {
+                                        entryOptions.forEach { n -> DropdownMenuItem(text = { Text(n.toString()) }, onClick = { perSel = n; page = 1; showEntries = false }) }
                                     }
                                 }
-                                Spacer(Modifier.width(8.dp))
-                                Text("entries", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Spacer(Modifier.width(8.dp)); Text("entries", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
 
                             OutlinedTextField(
-                                value = searchQuery,
-                                onValueChange = { searchQuery = it; currentPage = 1 },
+                                value = q,
+                                onValueChange = { q = it; page = 1 },
                                 placeholder = { Text("Cari nama / kode / lokasi...") },
                                 singleLine = true,
                                 leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Search") },
@@ -173,206 +149,188 @@ fun AssetMechanicScreen(
 
                         Spacer(Modifier.height(12.dp))
 
-                        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                            Text("Showing $showingStart to $showingEnd of $totalFiltered entries", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                            Text("Showing $showingStart to $showingEnd of $total entries", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             Spacer(Modifier.weight(1f))
                             IconButton(onClick = { /* refresh */ }) { Icon(Icons.Default.Refresh, contentDescription = "Refresh") }
                             IconButton(onClick = { /* export */ }) { Icon(Icons.Default.Download, contentDescription = "Export") }
                         }
 
-                        HorizontalDivider(
-                            modifier = Modifier.padding(vertical = 10.dp),
-                            thickness = DividerDefaults.Thickness,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.06f)
-                        )
+                        DividerSpacer()
 
-                        // responsive area: always auto (no manual selection)
+                        // responsive area
                         BoxWithConstraints {
-                            val wideBreakpoint = 900.dp
-                            val phoneBreakpoint = 420.dp
-
-                            // auto behavior: small screens -> cards, others -> table
-                            val useTable = maxWidth > phoneBreakpoint
-
-                            if (useTable) {
-                                if (maxWidth > wideBreakpoint) {
-                                    // wide: header + rows (no horizontal scroll)
+                            val wide = 900.dp; val phone = 420.dp; val useTable = maxWidth > phone
+                            when {
+                                !useTable -> {
+                                    Column { displayed.forEachIndexed { i, a -> AssetCard("${showingStart + i}", a, onViewAsset, onUpdateAsset, isLandscape) }; if (displayed.isEmpty()) EmptyNotFoundAsset() }
+                                }
+                                maxWidth > wide -> {
                                     Column {
-                                        Row(modifier = Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surfaceVariant).padding(vertical = 12.dp, horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-                                            Text("No", modifier = Modifier.width(colNo), fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
-                                            Text("Kategori", modifier = Modifier.width(colKategori), fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
-                                            Text("Nomor Peralatan", modifier = Modifier.width(colNomor), fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
-                                            Text("Mesin", modifier = Modifier.width(colMesin), fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
-                                            Text("Area Mesin", modifier = Modifier.width(colArea), fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
-                                            Spacer(Modifier.width(12.dp))
-                                            Text("Aksi", modifier = Modifier.width(colAction), fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
-                                        }
-
+                                        HeaderRow(cNo, cKat, cNom, cMes, cArea, cAct)
                                         Column {
-                                            displayed.forEachIndexed { idx, asset ->
-                                                Row(modifier = Modifier.fillMaxWidth().padding(vertical = 10.dp, horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-                                                    Text("${showingStart + idx}", modifier = Modifier.width(colNo), fontSize = 13.sp)
-                                                    Text("Mesin Produksi", modifier = Modifier.width(colKategori), fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                                                    Text(asset.kode, modifier = Modifier.width(colNomor), fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                                                    Text(asset.nama, modifier = Modifier.width(colMesin), fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                                                    Text(asset.lokasi, modifier = Modifier.width(colArea), fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-
-                                                    BoxWithConstraints(modifier = Modifier.width(colAction).padding(start = 12.dp)) {
-                                                        val compact = maxWidth < 240.dp // <-- threshold diturunkan
-                                                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                                                            if (compact) {
-                                                                IconButton(onClick = { /* QR */ }, modifier = Modifier.size(40.dp)) { Icon(Icons.Default.QrCode, contentDescription = "QR") }
-                                                                IconButton(onClick = { onViewAsset(asset.id) }, modifier = Modifier.size(40.dp)) { Icon(Icons.Default.Visibility, contentDescription = "Lihat") }
-                                                                IconButton(onClick = { onUpdateAsset(asset.id) }, modifier = Modifier.size(40.dp)) { Icon(Icons.Default.Edit, contentDescription = "Update") }
-                                                            } else {
-                                                                FilledTonalButton(onClick = { /* QR */ }, modifier = Modifier.height(40.dp).defaultMinSize(minWidth = 80.dp)) {
-                                                                    Icon(Icons.Default.QrCode, contentDescription = "QR")
-                                                                    Spacer(Modifier.width(6.dp))
-                                                                    Text("QR Code")
-                                                                }
-                                                                Button(onClick = { onViewAsset(asset.id) }, modifier = Modifier.height(40.dp).defaultMinSize(minWidth = 64.dp), colors = ButtonDefaults.buttonColors(containerColor = VIEW_COLOR)) {
-                                                                    Icon(Icons.Default.Visibility, contentDescription = "Lihat")
-                                                                    Spacer(Modifier.width(6.dp))
-                                                                    Text("Lihat")
-                                                                }
-                                                                // pastikan teks 'Update' penuh
-                                                                Button(onClick = { onUpdateAsset(asset.id) }, modifier = Modifier.height(40.dp).defaultMinSize(minWidth = 84.dp), colors = ButtonDefaults.buttonColors(containerColor = UPDATE_COLOR)) {
-                                                                    Icon(Icons.Default.Edit, contentDescription = "Update")
-                                                                    Spacer(Modifier.width(6.dp))
-                                                                    Text("Update")
-                                                                }
-                                                            }
-                                                        }
-                                                    }
-                                                }
-
-                                                HorizontalDivider(
-                                                    Modifier,
-                                                    DividerDefaults.Thickness,
-                                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.06f)
-                                                )
+                                            displayed.forEachIndexed { i, a ->
+                                                RowItem(showingStart + i, a, cNo, cKat, cNom, cMes, cArea, cAct, 240.dp, onViewAsset, onUpdateAsset)
+                                                DividerSpacer()
                                             }
-
-                                            if (displayed.isEmpty()) {
-                                                Box(modifier = Modifier.fillMaxWidth().padding(36.dp), contentAlignment = Alignment.Center) {
-                                                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                                        Icon(Icons.Default.Search, contentDescription = null, modifier = Modifier.size(48.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                                                        Spacer(Modifier.height(8.dp))
-                                                        Text("Tidak ada item ditemukan", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-                                } else {
-                                    // tablet / narrow: header + rows both use the same horizontal scroll state
-                                    Column {
-                                        Box(modifier = Modifier.horizontalScroll(tableHScroll)) {
-                                            Row(modifier = Modifier.width(tableWidth).background(MaterialTheme.colorScheme.surfaceVariant).padding(vertical = 12.dp, horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-                                                Text("No", modifier = Modifier.width(colNo), fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
-                                                Text("Kategori", modifier = Modifier.width(colKategori), fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
-                                                Text("Nomor Peralatan", modifier = Modifier.width(colNomor), fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
-                                                Text("Mesin", modifier = Modifier.width(colMesin), fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
-                                                Text("Area Mesin", modifier = Modifier.width(colArea), fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
-                                                Spacer(Modifier.width(12.dp))
-                                                Text("Aksi", modifier = Modifier.width(colAction), fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
-                                            }
-                                        }
-
-                                        Box(modifier = Modifier.horizontalScroll(tableHScroll)) {
-                                            Column(modifier = Modifier.width(tableWidth)) {
-                                                displayed.forEachIndexed { idx, asset ->
-                                                    Row(modifier = Modifier.fillMaxWidth().padding(vertical = 10.dp, horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-                                                        Text("${showingStart + idx}", modifier = Modifier.width(colNo), fontSize = 13.sp)
-                                                        Text("Mesin Produksi", modifier = Modifier.width(colKategori), fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                                                        Text(asset.kode, modifier = Modifier.width(colNomor), fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                                                        Text(asset.nama, modifier = Modifier.width(colMesin), fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                                                        Text(asset.lokasi, modifier = Modifier.width(colArea), fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-
-                                                        // action cell: fixed width and responsive (icon-only if really narrow)
-                                                        rememberScrollState()
-                                                        BoxWithConstraints(modifier = Modifier.width(colAction).padding(start = 8.dp)) {
-                                                            val compact = maxWidth < 220.dp // <-- threshold diturunkan
-                                                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                                                                if (compact) {
-                                                                    IconButton(onClick = { /* QR */ }, modifier = Modifier.size(40.dp)) { Icon(Icons.Default.QrCode, contentDescription = "QR") }
-                                                                    IconButton(onClick = { onViewAsset(asset.id) }, modifier = Modifier.size(40.dp)) { Icon(Icons.Default.Visibility, contentDescription = "Lihat") }
-                                                                    IconButton(onClick = { onUpdateAsset(asset.id) }, modifier = Modifier.size(40.dp)) { Icon(Icons.Default.Edit, contentDescription = "Update") }
-                                                                } else {
-                                                                    FilledTonalButton(onClick = { /* QR */ }, modifier = Modifier.height(40.dp).defaultMinSize(minWidth = 88.dp)) {
-                                                                        Icon(Icons.Default.QrCode, contentDescription = "QR")
-                                                                        Spacer(Modifier.width(8.dp))
-                                                                        Text("QR Code")
-                                                                    }
-                                                                    Button(onClick = { onViewAsset(asset.id) }, modifier = Modifier.height(40.dp).defaultMinSize(minWidth = 68.dp), colors = ButtonDefaults.buttonColors(containerColor = VIEW_COLOR)) {
-                                                                        Icon(Icons.Default.Visibility, contentDescription = "Lihat")
-                                                                        Spacer(Modifier.width(8.dp))
-                                                                        Text("Lihat")
-                                                                    }
-                                                                    // tetap tampil lengkap (icon + "Update")
-                                                                    Button(onClick = { onUpdateAsset(asset.id) }, modifier = Modifier.height(40.dp).defaultMinSize(minWidth = 88.dp), colors = ButtonDefaults.buttonColors(containerColor = UPDATE_COLOR)) {
-                                                                        Icon(Icons.Default.Edit, contentDescription = "Update")
-                                                                        Spacer(Modifier.width(8.dp))
-                                                                        Text("Update")
-                                                                    }
-                                                                }
-                                                            }
-                                                        }
-                                                    }
-                                                }
-                                            }
+                                            if (displayed.isEmpty()) EmptyNotFound()
                                         }
                                     }
                                 }
-                            } else {
-                                // CARD mode for small screens
-                                Column {
-                                    displayed.forEachIndexed { idx, asset ->
-                                        AssetCard(indexLabel = "${showingStart + idx}", asset = asset, onView = onViewAsset, onUpdate = onUpdateAsset, isLandscape = isLandscape)
-                                    }
-
-                                    if (displayed.isEmpty()) {
-                                        Box(modifier = Modifier.fillMaxWidth().padding(36.dp), contentAlignment = Alignment.Center) {
-                                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                                Icon(Icons.Default.Search, contentDescription = null, modifier = Modifier.size(48.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                                                Spacer(Modifier.height(8.dp))
-                                                Text("Tidak ada item ditemukan", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                            }
-                                        }
+                                else -> {
+                                    Column {
+                                        Box(Modifier.horizontalScroll(hScroll)) { HeaderScrollable(tableW, cNo, cKat, cNom, cMes, cArea, cAct) }
+                                        Box(Modifier.horizontalScroll(hScroll)) { Column(Modifier.width(tableW)) { displayed.forEachIndexed { i, a -> RowItem(showingStart + i, a, cNo, cKat, cNom, cMes, cArea, cAct, 220.dp, onViewAsset, onUpdateAsset) }; if (displayed.isEmpty()) EmptyNotFoundAsset() } }
                                     }
                                 }
                             }
-                        } // BoxWithConstraints
-                    } // Column inside CmmsCard
-                } // CmmsCard
+                        }
+                    }
+                }
             }
 
-            item {
-                HorizontalDivider(
-                    Modifier,
-                    DividerDefaults.Thickness,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.06f)
-                )
-            }
+            item { DividerSpacer() }
 
-            // pagination footer as item so it scrolls with page
             item {
                 TableFooterCompact(
-                    currentPage = currentPage,
+                    currentPage = page,
                     totalPages = totalPages,
                     perPage = perPage,
-                    totalItems = totalFiltered,
-                    onPrevious = { if (currentPage > 1) currentPage -= 1 },
-                    onNext = { if (currentPage < totalPages) currentPage += 1 },
-                    onPageClick = { page -> currentPage = page }
+                    totalItems = total,
+                    onPrevious = { if (page > 1) page-- },
+                    onNext = { if (page < totalPages) page++ },
+                    onPageClick = { p -> page = p }
                 )
             }
-        } // LazyColumn
-    } // Scaffold
+        }
+    }
+}
+
+@Composable private fun DividerSpacer() = HorizontalDivider(modifier = Modifier.padding(vertical = 10.dp), thickness = DividerDefaults.Thickness, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.06f))
+
+@Composable
+private fun HeaderRow(cNo: Dp, cKat: Dp, cNom: Dp, cMes: Dp, cArea: Dp, cAct: Dp) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.surfaceVariant)
+            .padding(vertical = 12.dp, horizontal = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text("No", modifier = Modifier.width(cNo), fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+        Text("Kategori", modifier = Modifier.width(cKat), fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+        Text("Nomor Peralatan", modifier = Modifier.width(cNom), fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+        Text("Mesin", modifier = Modifier.width(cMes), fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+        Text("Area Mesin", modifier = Modifier.width(cArea), fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+        Spacer(Modifier.width(12.dp))
+        Text("Aksi", modifier = Modifier.width(cAct), fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+    }
 }
 
 @Composable
-private fun AssetCard(
+private fun HeaderScrollable(tableW: Dp, cNo: Dp, cKat: Dp, cNom: Dp, cMes: Dp, cArea: Dp, cAct: Dp) {
+    Row(
+        modifier = Modifier
+            .width(tableW)
+            .background(MaterialTheme.colorScheme.surfaceVariant)
+            .padding(vertical = 12.dp, horizontal = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text("No", modifier = Modifier.width(cNo), fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+        Text("Kategori", modifier = Modifier.width(cKat), fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+        Text("Nomor Peralatan", modifier = Modifier.width(cNom), fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+        Text("Mesin", modifier = Modifier.width(cMes), fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+        Text("Area Mesin", modifier = Modifier.width(cArea), fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+        Spacer(Modifier.width(12.dp))
+        Text("Aksi", modifier = Modifier.width(cAct), fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+    }
+}
+
+
+@SuppressLint("UnusedBoxWithConstraintsScope")
+@Composable
+private fun RowItem(index: Int, asset: AssetItem, colNo: Dp, colKat: Dp, colNom: Dp, colMes: Dp, colArea: Dp, colAct: Dp, compactTh: Dp, onView: (Int)->Unit, onUpdate: (Int)->Unit) {
+    Row(modifier = Modifier.fillMaxWidth().padding(vertical = 10.dp, horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+        Text(index.toString(), modifier = Modifier.width(colNo), fontSize = 13.sp)
+        Text("Mesin Produksi", modifier = Modifier.width(colKat), fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        Text(asset.kode, modifier = Modifier.width(colNom), fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        Text(asset.nama, modifier = Modifier.width(colMes), fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        Text(asset.lokasi, modifier = Modifier.width(colArea), fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        BoxWithConstraints(modifier = Modifier.width(colAct).padding(start = 12.dp)) {
+            val compact = maxWidth < compactTh
+            ActionButtons(compact, asset.id, onView, onUpdate)
+        }
+    }
+}
+
+@Composable
+private fun ActionButtons(compact: Boolean, id: Int, onView: (Int)->Unit, onUpdate: (Int)->Unit) {
+    val ctx = LocalContext.current
+
+    // try to find asset info from dummyAssets for nicer URL (fallback to id)
+    val asset = dummyAssets.find { it.id == id }
+    val identifier = asset?.kode ?: id.toString()
+    // build dummy URL — ganti sesuai endpoint server-mu nanti
+    val qrUrl = "https://118.97.163.52:8296/index.php/peralatan/viewQR/$identifier"
+
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+        if (compact) {
+            // compact: icon-only
+            IconButton(onClick = {
+                // open WebView activity to show QR/page
+                val intent = Intent(ctx, ViewQRMechanic::class.java).apply {
+                    putExtra(ViewQRMechanic.EXTRA_URL, qrUrl)
+                    putExtra(ViewQRMechanic.EXTRA_LABEL, identifier)
+                }
+                ctx.startActivity(intent)
+            }, modifier = Modifier.size(40.dp)) {
+                Icon(Icons.Default.QrCode, contentDescription = "QR")
+            }
+
+            IconButton(onClick = { onView(id) }, modifier = Modifier.size(40.dp)) { Icon(Icons.Default.Visibility, contentDescription = "Lihat") }
+            IconButton(onClick = { onUpdate(id) }, modifier = Modifier.size(40.dp)) { Icon(Icons.Default.Edit, contentDescription = "Update") }
+        } else {
+            // normal: labeled buttons
+            FilledTonalButton(onClick = {
+                val intent = Intent(ctx, ViewQRMechanic::class.java).apply {
+                    putExtra(ViewQRMechanic.EXTRA_URL, qrUrl)
+                    putExtra(ViewQRMechanic.EXTRA_LABEL, identifier)
+                }
+                ctx.startActivity(intent)
+            }, modifier = Modifier.height(40.dp).defaultMinSize(minWidth = 80.dp)) {
+                Icon(Icons.Default.QrCode, contentDescription = "QR"); Spacer(Modifier.width(6.dp)); Text("QR Code")
+            }
+
+            Button(onClick = { onView(id) }, modifier = Modifier.height(40.dp).defaultMinSize(minWidth = 64.dp), colors = ButtonDefaults.buttonColors(containerColor = VIEW_COLOR)) {
+                Icon(Icons.Default.Visibility, contentDescription = "Lihat"); Spacer(Modifier.width(6.dp)); Text("Lihat")
+            }
+
+            Button(
+                onClick = { onUpdate(id) },
+                modifier = Modifier.height(40.dp).defaultMinSize(minWidth = 84.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = UPDATE_COLOR)
+            ) {
+                Icon(Icons.Default.Edit, contentDescription = "Update")
+                Spacer(Modifier.width(6.dp))
+                Text("Update")
+            }
+        }
+    }
+}
+
+
+
+@Composable
+private fun EmptyNotFoundAsset() = Box(Modifier.fillMaxWidth().padding(36.dp), contentAlignment = Alignment.Center) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Icon(Icons.Default.Search, contentDescription = null, modifier = Modifier.size(48.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+        Spacer(Modifier.height(8.dp))
+        Text("Tidak ada item ditemukan", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+}
+
+@Composable
+fun AssetCard(
     indexLabel: String,
     asset: AssetItem,
     onView: (Int) -> Unit,
@@ -439,9 +397,19 @@ private fun AssetCard(
 
             // actions: QR | Lihat | Update (rata kanan)
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
-                IconButton(onClick = { /* QR action */ }, modifier = Modifier.size(40.dp)) {
+                val ctx = LocalContext.current
+                IconButton(onClick = {
+                    val identifier = asset.kode.ifBlank { asset.id.toString() }
+                    val qrUrl = "https://118.97.163.52:8296/index.php/peralatan/viewQR/$identifier"
+                    val intent = Intent(ctx, ViewQRMechanic::class.java).apply {
+                        putExtra(ViewQRMechanic.EXTRA_URL, qrUrl)
+                        putExtra(ViewQRMechanic.EXTRA_LABEL, identifier)
+                    }
+                    ctx.startActivity(intent)
+                }, modifier = Modifier.size(40.dp)) {
                     Icon(Icons.Default.QrCode, contentDescription = "QR")
                 }
+
 
                 Spacer(Modifier.width(6.dp))
 
@@ -456,9 +424,12 @@ private fun AssetCard(
 
                 Spacer(Modifier.width(8.dp))
 
+                // UPDATE button standardized to your requested style
                 Button(
                     onClick = { onUpdate(asset.id) },
-                    modifier = Modifier.height(40.dp).defaultMinSize(minWidth = if (isLandscape) 110.dp else 96.dp),
+                    modifier = Modifier
+                        .height(40.dp)
+                        .defaultMinSize(minWidth = 84.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = UPDATE_COLOR)
                 ) {
                     Icon(Icons.Default.Edit, contentDescription = "Update")
@@ -471,74 +442,23 @@ private fun AssetCard(
 }
 
 @Composable
-private fun TableFooterCompact(
-    currentPage: Int,
-    totalPages: Int,
-    perPage: Int,
-    totalItems: Int,
-    onPrevious: () -> Unit,
-    onNext: () -> Unit,
-    onPageClick: (Int) -> Unit
-) {
+private fun TableFooterCompact(currentPage: Int, totalPages: Int, perPage: Int, totalItems: Int, onPrevious: ()->Unit, onNext: ()->Unit, onPageClick: (Int)->Unit) {
     val start = if (totalItems == 0) 0 else (currentPage - 1) * perPage + 1
     val end = min(totalItems, currentPage * perPage)
-
-    Column(modifier = Modifier.fillMaxWidth().padding(top = 8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        // baris atas: teks "Showing ... of ..."
-        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Text("Showing $start to $end of $totalItems entries", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
-
-        // baris bawah: pagination (scrollable, diratakan ke kanan)
+    Column(Modifier.fillMaxWidth().padding(top = 8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) { Text("Showing $start to $end of $totalItems entries", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant) }
         val footerScroll = rememberScrollState()
-        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Spacer(modifier = Modifier.weight(1f)) // dorong pagination ke kanan
-            Row(
-                modifier = Modifier.horizontalScroll(footerScroll),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                OutlinedButton(onClick = onPrevious, enabled = currentPage > 1, modifier = Modifier.height(36.dp)) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Previous")
-                    Spacer(Modifier.width(6.dp))
-                    Text("Previous", fontSize = 12.sp)
-                }
-
-                val pages = remember(currentPage, totalPages) {
-                    val window = 5
-                    val startPage = max(1, currentPage - window / 2)
-                    val endPage = min(totalPages, startPage + window - 1)
-                    (startPage..endPage).toList()
-                }
-
-                pages.forEach { p ->
-                    val selected = p == currentPage
-                    Button(
-                        onClick = { if (!selected) onPageClick(p) },
-                        colors = if (selected) ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary) else ButtonDefaults.outlinedButtonColors(),
-                        modifier = Modifier.height(36.dp).width(36.dp),
-                        contentPadding = PaddingValues(0.dp)
-                    ) {
-                        Text(p.toString(), fontSize = 12.sp, color = if (selected) Color.White else MaterialTheme.colorScheme.onSurface)
-                    }
-                }
-
-                OutlinedButton(onClick = onNext, enabled = currentPage < totalPages, modifier = Modifier.height(36.dp)) {
-                    Text("Next", fontSize = 12.sp)
-                }
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Spacer(Modifier.weight(1f))
+            Row(Modifier.horizontalScroll(footerScroll), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedButton(onClick = onPrevious, enabled = currentPage > 1, modifier = Modifier.height(36.dp)) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Previous"); Spacer(Modifier.width(6.dp)); Text("Previous", fontSize = 12.sp) }
+                val pages = remember(currentPage, totalPages) { val w = 5; val s = max(1, currentPage - w / 2); val e = min(totalPages, s + w - 1); (s..e).toList() }
+                pages.forEach { p -> val sel = p == currentPage; Button(onClick = { if (!sel) onPageClick(p) }, colors = if (sel) ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary) else ButtonDefaults.outlinedButtonColors(), modifier = Modifier.height(36.dp).width(36.dp), contentPadding = PaddingValues(0.dp)) { Text(p.toString(), fontSize = 12.sp, color = if (sel) Color.White else MaterialTheme.colorScheme.onSurface) } }
+                OutlinedButton(onClick = onNext, enabled = currentPage < totalPages, modifier = Modifier.height(36.dp)) { Text("Next", fontSize = 12.sp) }
             }
         }
     }
 }
 
-@Preview(showBackground = true, widthDp = 360)
-@Composable
-fun AssetMechanicPreviewPhone() {
-    AssetMechanicScreen(onBack = {}, onViewAsset = {}, onUpdateAsset = {})
-}
-
-@Preview(showBackground = true, widthDp = 1000)
-@Composable
-fun AssetMechanicPreviewWide() {
-    AssetMechanicScreen(onBack = {}, onViewAsset = {}, onUpdateAsset = {})
-}
+@Preview(showBackground = true, widthDp = 360) @Composable fun AssetMechanicPreviewPhone() = AssetMechanicScreen()
+@Preview(showBackground = true, widthDp = 1000) @Composable fun AssetMechanicPreviewWide() = AssetMechanicScreen()
